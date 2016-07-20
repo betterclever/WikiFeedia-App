@@ -26,6 +26,7 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.betterclever.wikifeedia.Contract.FeedviewData;
 import com.betterclever.wikifeedia.adapters.FeedviewAdapter;
+import com.miguelcatalan.materialsearchview.MaterialSearchView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -39,6 +40,8 @@ public class MainActivity extends AppCompatActivity
 	private ArrayList<FeedviewData> feedviewDataList = new ArrayList<FeedviewData>();
 	private FeedviewAdapter adapter;
 	private SwipeRefreshLayout swipeContainer;
+	private MaterialSearchView searchView;
+	String category;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -58,9 +61,10 @@ public class MainActivity extends AppCompatActivity
 		recyclerView.setItemAnimator(new DefaultItemAnimator());
 		recyclerView.setAdapter(adapter);
 
+		category = "featured_articles";
 		//call the data fetching function
 		for(int i =0;i < 15;i++) {
-			fetchRandomArticleData();
+			fetchRandomArticleData(category);
 		}
 
 		swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
@@ -72,7 +76,7 @@ public class MainActivity extends AppCompatActivity
 				feedviewDataList.clear();
 
 				for(int i =0;i < 15;i++) {
-					fetchRandomArticleData();
+					fetchRandomArticleData(category);
 				}
 				mHandler.postDelayed(new Runnable() {
 					@Override
@@ -81,14 +85,46 @@ public class MainActivity extends AppCompatActivity
 					}
 				}, 10000);
 			}
+		});
 
+		searchView = (MaterialSearchView) findViewById(R.id.search_view);
+		searchView.setVoiceSearch(false);
+		searchView.setOnQueryTextListener(new MaterialSearchView.OnQueryTextListener() {
+			@Override
+			public boolean onQueryTextSubmit(String query) {
+				if(query.equals("")){
+					category = "featured_articles";
+				}
+				else category = query;
+				Log.d("query",query);
+				adapter.clearAll();
+				feedviewDataList.clear();
 
+				for(int i =0;i < 15;i++) {
+					fetchRandomArticleData(category);
+				}
+
+				return false;
+			}
+
+			@Override
+			public boolean onQueryTextChange(String newText) {
+				return false;
+			}
+		});
+		searchView.setOnSearchViewListener(new MaterialSearchView.SearchViewListener() {
+			@Override
+			public void onSearchViewShown() {
+
+			}
+
+			@Override
+			public void onSearchViewClosed() {
+
+			}
 		});
 
 
-
-
-		// ends here
 
 		FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 		fab.setOnClickListener(new View.OnClickListener() {
@@ -118,12 +154,22 @@ public class MainActivity extends AppCompatActivity
 		} else {
 			super.onBackPressed();
 		}
+
+		if (searchView.isSearchOpen()) {
+			searchView.closeSearch();
+		} else {
+			super.onBackPressed();
+		}
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.menu_scrolling, menu);
+
+		MenuItem item = menu.findItem(R.id.action_search);
+		searchView.setMenuItem(item);
+
 		return true;
 	}
 
@@ -167,8 +213,10 @@ public class MainActivity extends AppCompatActivity
 		return true;
 	}
 
-	public void fetchRandomArticleData(){
-		String HEROKU_API_URL = "http://wikifeedia.herokuapp.com/index.php?category=featured_articles&callback=?";
+	public void fetchRandomArticleData(String category){
+
+		String HEROKU_API_URL = "http://wikifeedia.herokuapp.com/index.php?category="+category+"&callback=?";
+		Log.d("Heroku URL",HEROKU_API_URL);
 		final String[] title = {""};
 		StringRequest stringRequest = new StringRequest(Request.Method.GET, HEROKU_API_URL,
 			new Response.Listener<String>() {
@@ -180,6 +228,10 @@ public class MainActivity extends AppCompatActivity
 					response = response.substring(1,response.length()-1);
 					title[0] = response.substring(13);
 					Log.d("Extracted title", title[0]);
+					if(title[0].equals("t")){
+						fetchRandomArticleData("featured_articles");
+						return;
+					}
 					getItemDetails(response.substring(13));
 
 				}
@@ -207,7 +259,12 @@ public class MainActivity extends AppCompatActivity
 						JSONObject pageInfo = pages.getJSONObject(id);
 						String title = pageInfo.getString("title");
 						String description = pageInfo.getString("extract");
-						String imgURL = pageInfo.getJSONObject("thumbnail").getString("source");
+
+						String imgURL = "";
+						if(pageInfo.has("thumbnail")){
+							imgURL = pageInfo.getJSONObject("thumbnail").getString("source");
+						};
+
 						Log.d("title",title);
 						Log.d("description",description);
 						Log.d("source",imgURL);
@@ -225,6 +282,7 @@ public class MainActivity extends AppCompatActivity
 		});
 		WikifeediaApplication.getInstance().addToRequestQueue(stringRequest1);
 	}
+
 
 
 }

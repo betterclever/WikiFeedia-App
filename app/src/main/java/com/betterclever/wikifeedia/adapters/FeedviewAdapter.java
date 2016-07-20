@@ -1,5 +1,7 @@
 package com.betterclever.wikifeedia.adapters;
 
+import android.graphics.drawable.Drawable;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -54,11 +56,17 @@ public class FeedviewAdapter extends RecyclerView.Adapter<FeedviewAdapter.ViewHo
 		holder.description.setText(articleInfo.getDescription());
 
 		String imgUrl = articleInfo.getImageUrl();
-		Picasso.with(WikifeediaApplication.getInstance().getApplicationContext())
-			.load(imgUrl)
-			.placeholder(R.drawable.clock_loading)
-			.error(R.drawable.no_image)
-			.into(holder.articleThumbnail);
+		if(imgUrl.equals("")){
+			Drawable drawable = ContextCompat.getDrawable(WikifeediaApplication.getInstance().getApplicationContext(),R.drawable.no_image);
+			holder.articleThumbnail.setImageDrawable(drawable);
+		}
+		else {
+			Picasso.with(WikifeediaApplication.getInstance().getApplicationContext())
+				.load(imgUrl)
+				.placeholder(R.drawable.clock_loading)
+				.error(R.drawable.no_image)
+				.into(holder.articleThumbnail);
+		}
 	}
 
 	@Override
